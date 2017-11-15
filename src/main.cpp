@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
 	if (cfg.useMatchMaking) {
 		oi::core::network::UDPConnector client(cfg.listenPort, cfg.remotePort, cfg.remoteHost, io_service_);
-		client.Init(cfg.socketID, cfg.deviceSerial, true, 1024, 32, 65506, 32);
+		client.Init(cfg.socketID, cfg.deviceSerial, true, 1024, 32, 65506, 64);
 
 		oi::core::rgbd::KinectDSK2Streamer k2stream(cfg, &client);
 		k2stream.Run();

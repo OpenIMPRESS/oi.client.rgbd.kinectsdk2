@@ -1,6 +1,18 @@
 #include "KinectSDK2Streamer.hpp"
+#include <comdef.h>
+#include <string>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 namespace oi { namespace core { namespace rgbd {
+
+
+	std::string format_error(unsigned __int32 hr) {
+		std::stringstream ss;
+		ss << "Failed to Initialize COM. Error code = 0x" << std::hex << hr << std::endl;
+		return ss.str();
+	}
 
 	KinectDSK2Streamer::KinectDSK2Streamer(StreamerConfig cfg, oi::core::network::UDPBase * c) : RGBDStreamer(cfg, c) {
 	}
@@ -125,6 +137,7 @@ namespace oi { namespace core { namespace rgbd {
 		if (audio_buffer_loc > 0) {
 			_SendAudioFrame(sequence, audio_buffer, audio_buffer_loc, 16000, 1);
 		}
+
 		/*
 		DWORD cbRead = 0;
 		hres = audioStream->Read((void *)audio_buffer, sizeof(audio_buffer), &cbRead);
@@ -142,7 +155,10 @@ namespace oi { namespace core { namespace rgbd {
 		hres = reader->AcquireLatestFrame(&frame);
 		if (hres == E_PENDING) return 0; // PENDING
 		if (!SUCCEEDED(hres)) {
-			std::cout << "FAILED TO ACQUIRE FRAME: " << hres << std::endl;
+			_com_error err(hres);
+			std::cerr << "\nERROR GETTING FRAME: " << err.ErrorMessage() << std::endl;
+			std::cerr << format_error(hres) << std::endl;
+			frame->Release();
 			return -1;
 		}
 
@@ -151,18 +167,33 @@ namespace oi { namespace core { namespace rgbd {
 		frame->get_DepthFrameReference(&depthframeref);
 		hres = depthframeref->AcquireFrame(&depthFrame);
 		if (depthframeref) depthframeref->Release();
-		if (hres == E_PENDING) return 0; // PENDING
-
+		if (hres == E_PENDING) {
+			if (depthFrame) depthFrame->Release();
+			return 0;
+		} else if (!SUCCEEDED(hres)) {
+			_com_error err(hres);
+			std::cerr << "\nERROR GETTING DEPTH: " << err.ErrorMessage() << std::endl;
+			std::cerr << format_error(hres) << std::endl;
+		}
 
 		IColorFrame* colorFrame;
 		IColorFrameReference* colorframeref = NULL;
 		frame->get_ColorFrameReference(&colorframeref);
 		hres = colorframeref->AcquireFrame(&colorFrame);
 		if (colorframeref) colorframeref->Release();
-		if (hres == E_PENDING) return 0; // PENDING
+		if (hres == E_PENDING) {
+			if (colorFrame) colorFrame->Release();
+			return 0;
+		} else if (!SUCCEEDED(hres)) {
+			_com_error err(hres);
+			std::cerr << "\nERROR GETTING COLOR: " << err.ErrorMessage() << std::endl;
+			std::cerr << format_error(hres) << std::endl;
+		}
 
 		if (!depthFrame || !colorFrame) {
 			std::cout << "ERROR: depth/color frame undefined" << std::endl;
+			if (colorFrame) colorFrame->Release();
+			if (depthFrame) depthFrame->Release();
 			return 0;
 		}
 
@@ -190,10 +221,10 @@ namespace oi { namespace core { namespace rgbd {
 		}
 
 
-		int res = _SendFrame(++sequence, mappedRGBImage, (unsigned short*) depthData);
+		int res = _SendRGBDFrame(++sequence, mappedRGBImage, (unsigned short*) depthData);
 
-		depthFrame->Release();
-		colorFrame->Release();
+		if (depthFrame) depthFrame->Release();
+		if (colorFrame) colorFrame->Release();
 
 		return res;
 	}
@@ -262,4 +293,8 @@ namespace oi { namespace core { namespace rgbd {
 		return TJPF_RGB;
 	}
 
+	bool KinectDSK2Streamer::supports_audio() {
+		return true;
+	}
+	
 } } }

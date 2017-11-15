@@ -34,6 +34,7 @@ namespace oi { namespace core { namespace rgbd {
 		std::string serial;
 		std::string device_guid();
 		TJPF color_pixel_format();
+		bool supports_audio();
 
 		IKinectSensor* sensor;         // Kinect sensor
 		IMultiSourceFrameReader* reader;   // Kinect data source
