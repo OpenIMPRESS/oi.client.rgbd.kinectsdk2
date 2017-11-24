@@ -10,6 +10,9 @@
 
 namespace oi { namespace core { namespace rgbd {
 
+	template<class Interface>
+	inline void SafeRelease(Interface *& IRelease);
+
 	class KinectDSK2Streamer : public RGBDStreamer {
 	public:
 		KinectDSK2Streamer(StreamerConfig cfg, oi::core::network::UDPBase * c);
@@ -35,16 +38,22 @@ namespace oi { namespace core { namespace rgbd {
 		std::string device_guid();
 		TJPF color_pixel_format();
 		bool supports_audio();
+		bool supports_body();
+		bool supports_bidx();
+		bool supports_hd();
+
+		// 0 for pending, 1 for good, -X for error
+		int GetFrame(IMultiSourceFrame *, IColorFrame **);
+		int GetFrame(IMultiSourceFrame *, IDepthFrame **);
+		int GetFrame(IMultiSourceFrame *, IBodyFrame **);
+		int GetFrame(IMultiSourceFrame *, IBodyIndexFrame **);
+		int GetAudioSamples(IAudioBeamFrameReader *, float*, size_t);
 
 		IKinectSensor* sensor;         // Kinect sensor
 		IMultiSourceFrameReader* reader;   // Kinect data source
 		ICoordinateMapper* mapper;         // Converts between depth, color, and 3d coordinates
 
-
-
 		IAudioBeamFrameReader * audioReader;
-		//IAudioBeam *     audioBeam;
-		//IStream * audioStream;
 
 		CameraIntrinsics c_i;
 
@@ -52,6 +61,21 @@ namespace oi { namespace core { namespace rgbd {
 		unsigned char * rgbimage;    // Stores RGB color image
 		unsigned char * mappedRGBImage;    // Stores RGB color image
 		unsigned long sequence = 0;
+
+
+		BODY_STRUCT body_buffers[BODY_COUNT];
+	private:
+		//TIMESPAN _expected_next_audio_frame_start = 0;
+
+		std::thread * audio_thread;
+		void GetAudio();
+		bool _audio_running;
+		static const size_t audio_buffer_size = 64000;
+		float audio_buffer[audio_buffer_size];
+		std::mutex audio_mutex;
+		int buffer_loc = 0;
+
+
 	};
 
 } } }
