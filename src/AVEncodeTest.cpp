@@ -10,6 +10,7 @@
 namespace oi { namespace util { namespace av {
 
 	AVEncodeTest::AVEncodeTest(std::string filename) {
+		/*
 		avcodec_register_all();
 		codec = avcodec_find_encoder(codec_id);
 		if (!codec) {
@@ -23,14 +24,14 @@ namespace oi { namespace util { namespace av {
 			return;
 		}
 
-		/* put sample parameters */
+		// put sample parameters 
 		c->bit_rate = 800000;
-		/* resolution must be a multiple of two */
+		// resolution must be a multiple of two 
 		c->width = 1920;
 		c->height = 1080;
 		c->time_base.num = 1;
 		c->time_base.den = 25;
-		c->gop_size = 10; /* emit one intra frame every ten frames */
+		c->gop_size = 10; // emit one intra frame every ten frames 
 		c->max_b_frames = 1;
 		c->pix_fmt = AV_PIX_FMT_YUV420P;
 
@@ -40,7 +41,7 @@ namespace oi { namespace util { namespace av {
 			av_dict_set(&codec_options, "preset", "veryfast", 0);
 		}
 
-		/* open it */
+		// open it
 		if (avcodec_open2(c, codec, &codec_options) < 0) {
 			fprintf(stderr, "could not open codec\n");
 			return;
@@ -69,9 +70,11 @@ namespace oi { namespace util { namespace av {
 		fcount = 0;
 		works = true;
 		fprintf(stdout, "Encoding initialized!\n");
+		*/
 	}
 
 	int AVEncodeTest::AddFrame(unsigned char * rgbdata) {
+		/*
 		if (!works) {
 			fprintf(stderr, "ERROR: Can't add frame!\n");
 			return -1;
@@ -80,7 +83,7 @@ namespace oi { namespace util { namespace av {
 		pkt.data = NULL;
 		pkt.size = 0;
 
-		memset(frame->data[0], 0, frame->width * frame->height * 4); /* black */
+		memset(frame->data[0], 0, frame->width * frame->height * 4);
 		//uint8_t *pix_ptr = frame->data[0];
 		//memcpy(&(frame->data[0][0]), rgbdata, frame->width * frame->height * 4);
 		frame->pts = fcount;
@@ -99,10 +102,13 @@ namespace oi { namespace util { namespace av {
 
 		fcount++;
 		return ret;
+		*/
+		return 0;
 	}
 
 	int AVEncodeTest::Close() {
-		/* get the delayed frames */
+		/*
+		// get the delayed frames 
 		if (!works) {
 			fprintf(stderr, "Error: Didn't save file\n");
 			return 0;
@@ -122,7 +128,7 @@ namespace oi { namespace util { namespace av {
 			}
 		}
 
-		/* add sequence end code to have a real mpeg file */
+		// add sequence end code to have a real mpeg file 
 		uint8_t endcode[] = { 0, 0, 1, 0xb7 };
 		fwrite(endcode, 1, sizeof(endcode), f);
 		fclose(f);
@@ -131,6 +137,7 @@ namespace oi { namespace util { namespace av {
 		av_freep(&frame->data[0]);
 		av_frame_free(&frame);
 		printf("\n");
+		*/
 		return 0;
 	}
 
