@@ -108,7 +108,7 @@ namespace oi {
 					std::cout << "NO intrinsics" << std::endl;
 				}
 
-				depth2rgb = new ColorSpacePoint[frame_width()*frame_height()];
+				depth2rgb = new ColorSpacePoint[frame_width() * frame_height()];
 				rgbimage = new unsigned char[color_width() * color_height() * 4];
 				mappedRGBImage = new unsigned char[frame_width()*frame_height() * 3];
 
@@ -165,6 +165,7 @@ namespace oi {
 				if (audio_data_len > 0) {
 					//std::cout << "SENDING: " << audio_data_len << "\n";
 					res += _SendAudioFrame(sequence, buffer_cpy, audio_data_len, 16000, 1, timestamp);
+					delete[] buffer_cpy;
 				}
 
 				IMultiSourceFrame* frame = NULL;
@@ -191,7 +192,9 @@ namespace oi {
 				int biRes = GetFrame(frame, &bodyIndexFrame);
 
 				if (dRes + cRes + bRes + biRes != 4) {
-					std::cout << "ERROR: depth/color/body frame undefined" << std::endl;
+					if (this->config.debugLevel > 0) {
+						std::cout << "\nERROR: depth/color/body frame undefined" << std::endl;
+					}
 					SafeRelease(bodyIndexFrame);
 					SafeRelease(bodyFrame);
 					SafeRelease(colorFrame);
@@ -224,6 +227,7 @@ namespace oi {
 				}
 
 				_SendBodyIndexFrame(depthMult, frame_width(), frame_height(), TJPF_GRAY, timestamp);
+				delete[] depthMult;
 
 				if (SUCCEEDED(hres)) {
 					//mapper->MapColorFrameToDepthSpace();
@@ -418,9 +422,11 @@ namespace oi {
 				SafeRelease(colorframeref);
 				if (hres == E_PENDING) return 0;
 				else if (!SUCCEEDED(hres)) {
-					_com_error err(hres);
-					std::cerr << "\nERROR GETTING COLOR FRAME: " << err.ErrorMessage() << std::endl;
-					std::cerr << format_error(hres) << std::endl;
+					if (this->config.debugLevel > 0) {
+						_com_error err(hres);
+						std::cerr << "\nERROR GETTING COLOR FRAME: " << err.ErrorMessage() << std::endl;
+						std::cerr << format_error(hres) << std::endl;
+					}
 					return -1;
 				}
 				return 1;
@@ -433,9 +439,12 @@ namespace oi {
 				SafeRelease(depthframeref);
 				if (hres == E_PENDING) return 0;
 				else if (!SUCCEEDED(hres)) {
-					_com_error err(hres);
-					std::cerr << "\nERROR GETTING DEPTH FRAME: " << err.ErrorMessage() << std::endl;
-					std::cerr << format_error(hres) << std::endl;
+					if (this->config.debugLevel > 0) {
+						_com_error err(hres);
+						std::cerr << "\nERROR GETTING DEPTH FRAME: " << err.ErrorMessage() << std::endl;
+						std::cerr << format_error(hres) << std::endl;
+					}
+					return -1;
 				}
 				else return 1;
 			}
@@ -447,9 +456,11 @@ namespace oi {
 				SafeRelease(bodyFrameRef);
 				if (hres == E_PENDING) return 0;
 				else if (!SUCCEEDED(hres)) {
-					_com_error err(hres);
-					std::cerr << "\nERROR GETTING BODY FRAME: " << err.ErrorMessage() << std::endl;
-					std::cerr << format_error(hres) << std::endl;
+					if (this->config.debugLevel > 0) {
+						_com_error err(hres);
+						std::cerr << "\nERROR GETTING BODY FRAME: " << err.ErrorMessage() << std::endl;
+						std::cerr << format_error(hres) << std::endl;
+					}
 					return -1;
 				}
 				return 1;
@@ -462,9 +473,11 @@ namespace oi {
 				SafeRelease(bodyIndexFrameRef);
 				if (hres == E_PENDING) return 0;
 				else if (!SUCCEEDED(hres)) {
-					_com_error err(hres);
-					std::cerr << "\nERROR GETTING BODY INDEX FRAME: " << err.ErrorMessage() << std::endl;
-					std::cerr << format_error(hres) << std::endl;
+					if (this->config.debugLevel > 0) {
+						_com_error err(hres);
+						std::cerr << "\nERROR GETTING BODY INDEX FRAME: " << err.ErrorMessage() << std::endl;
+						std::cerr << format_error(hres) << std::endl;
+					}
 					return -1;
 				}
 				return 1;
@@ -486,13 +499,15 @@ namespace oi {
 						IAudioBeamFrame * beamFrame;
 						hres = beamFrames->OpenAudioBeamFrame(i, &beamFrame);
 
-						if (FAILED(hres)) {
+						if (FAILED(hres) && this->config.debugLevel > 0) {
 							std::cerr << "\nERROR: Can't open AudioBeamFrame" << std::endl;
 						}
 						else {
 							hres = beamFrame->get_SubFrameCount(&subFrameCount);
 							if (FAILED(hres)) {
-								std::cerr << "\nERROR: Can't get SubFrameCount" << std::endl;
+								if (this->config.debugLevel > 0) {
+									std::cerr << "\nERROR: Can't get SubFrameCount" << std::endl;
+								}
 								subFrameCount = 0;
 							}
 						}
@@ -524,7 +539,9 @@ namespace oi {
 							beamSubFrame->get_RelativeTime(&tsSubFrame);
 
 							if (FAILED(hres)) {
-								std::cerr << "\nERROR: Failed to GetSubFrame" << std::endl;
+								if (this->config.debugLevel > 0) {
+									std::cerr << "\nERROR: Failed to GetSubFrame" << std::endl;
+								}
 								SafeRelease(beamSubFrame); break;
 							}
 
@@ -539,7 +556,9 @@ namespace oi {
 							//_expected_next_audio_frame_start = tsSubFrame + ((cbRead / sizeof(float)) / 16) * 10000;
 
 							if (FAILED(hres)) {
-								std::cerr << "\nERROR: Failed to AccessUnderlyingBuffer" << std::endl;
+								if (this->config.debugLevel > 0) {
+									std::cerr << "\nERROR: Failed to AccessUnderlyingBuffer" << std::endl;
+								}
 								SafeRelease(beamSubFrame); break;
 							}
 
