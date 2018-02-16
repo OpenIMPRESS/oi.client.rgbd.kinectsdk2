@@ -12,3 +12,42 @@ Stream KinectV2 data using the Microsoft Kinect SDK through UDP accross the netw
    - (or your respective string for your version of visual studio)
    - (default locations for search for asio folder is next to this folder)
  - Now you can open oi.client.rgbd.kinectsdk2.sln with Visual Studio
+
+
+## Command Line Parameters
+
+-mm [1|0] 
+Use matchmaking (1=yes, 0=configure ip/port manually)
+
+-id [socketID]
+The socket name.
+
+-lp [portnumber]
+The port on which this streamer is listening for commands. Automatically set if using matchmaking.
+
+-rp [portnumber]
+The port on the streaming destination to which data is sent. If using matchmaking, this is the port of the matchmaking  server.
+
+-rh [hostname/ip]
+The ip/hostname on the streaming destination to which data is sent. If using matchmaking, this is the ip/hostname of the matchmaking  server.
+
+-sn [serialnumber]
+The serial number of the kinect.
+
+-pp [pipeline]
+Not used for microsoft sdk.
+
+-md [???]
+Max depth. Don't use this.
+
+-o [filename]
+Default file to store recordings to.
+
+-i [filename]
+Default file to load recordings from
+
+-d [folder path]
+Folder to load/store recordings in/from.
+
+-dl [0-10]
+Debug level
