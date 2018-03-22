@@ -2,19 +2,28 @@
 
 Stream KinectV2 data using the Microsoft Kinect SDK through UDP accross the network.
 
-## Installation (TODO: THIS IS NOT TESTED, check https://homes.cs.washington.edu/~edzhang/tutorials/kinect2/kinect0.html )
- - Install Kinect SDK 2.0 (TODO: Explain)
- - Get a copy of asio:
-   - git clone https://github.com/chriskohlhoff/asio.git
- - make a folder "build" in oi.client.rgbd.kinectsdk2
-   - cd build
-   - cmake -G "Visual Studio 14 2015 Win64" -D asio\_ROOT\_DIR="path/to/asio" ..
-   - (or your respective string for your version of visual studio)
-   - (default locations for search for asio folder is next to this folder)
- - Now you can open oi.client.rgbd.kinectsdk2.sln with Visual Studio
+## Installation
+ - Install [Kinect SDK 2.0](https://www.microsoft.com/en-us/download/details.aspx?id=44561)
+ - Install [cmake](https://cmake.org/download/)
+ - Install [libjpeg-turbo](https://sourceforge.net/projects/libjpeg-turbo/files/1.5.3/libjpeg-turbo-1.5.3-vc64.exe/download)
+ - Clone asio, oi.client.rgbd.libfreenect2 and oi.client.rgbd.kinectsdk2. Use this folder structure:
+```
+    OpenIMPRESS/
+	  dependencies/
+		[asio](https://github.com/chriskohlhoff/asio)/
+	  clients/
+	    [oi.client.rgbd.kinectsdk2](https://github.com/OpenIMPRESS/oi.client.rgbd.kinectsdk2)/
+		[oi.client.rgbd.libfreenect2](https://github.com/OpenIMPRESS/oi.client.rgbd.libfreenect2)/
+		
+```
+- ```cd clients/oi.client.rgbd.kinectsdk2```
+- ```mkdir build```
+- ```cdir build```
+- ```cmake -G "Visual Studio 15 2017 Win64" ..``` (don't forget the two dots at the end!)
+- Now open build/oi.client.rgbd.kinectsdk2.sln with Visual Studio.
 
 
-## Command Line Parameters
+## Command Line Parameters for the binary
 
 -mm [1|0]  
 
