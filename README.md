@@ -60,10 +60,12 @@ Folder to load/store recordings in/from.
 ```-dl [0-10]```  
 Debug level
 
+## Tip for debugging
+In Visual Studio, right click on the oi.client.rgbd.kinectsdk2, go to properties, then "debugging" and enter your preferred command line parameters in the "Command Arguments" field.
 
 ## Minimal Example: Stream Kinect to a local unity client
-Run the binary from CMD:  
+Run from Visual Studio (with the Command Arguments configured) or the compiled binary from CMD:  
 
- ./oi.client.rgbd.kinectsdk2.exe -rh 127.0.0.1 -rp 5001 -lp 5005 -mm 0  
+```./oi.client.rgbd.kinectsdk2.exe -rh 127.0.0.1 -rp 5001 -lp 5005 -mm 0```
  
 In Unity, use the "LocalExample" prefab from oi.plugin.rgbd to render this pointcloud.
