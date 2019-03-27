@@ -66,8 +66,7 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDStreamer * streamer) {
 	audio_mutex.unlock();
 
 	if (audio_data_len > 0) {
-		//std::cout << "SENDING: " << audio_data_len << "\n";
-		//res += _SendAudioFrame(sequence, buffer_cpy, audio_data_len, 16000, 1, timestamp);
+		res += streamer->QueueAudioFrame(sequence, buffer_cpy, audio_data_len, 16000, 1, timestamp);
 		delete[] buffer_cpy;
 	}
 
@@ -128,7 +127,7 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDStreamer * streamer) {
 		bidx++;
 	}
 
-	//_SendBodyIndexFrame(depthMult, frame_width(), frame_height(), TJPF_GRAY, timestamp);
+	streamer->QueueBodyIndexFrame(depthMult, frame_width(), frame_height(), TJPF_GRAY, timestamp);
 	delete[] depthMult;
 
 
@@ -164,10 +163,7 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDStreamer * streamer) {
 							mappedRGBImage[3 * i + 2] = rgbimage[4 * idx + 2];
 						}
 					}
-					// SENDING RGBD Data
-					//res += _SendRGBDFrame(++sequence, mappedRGBImage, (unsigned short*)depthData, timestamp);
-
-					// sequence: todo, kinect sdk sequence id?
+					// TODO: kinect sdk sequence id?
 					res += streamer->QueueRGBDFrame(++sequence, mappedRGBImage, (unsigned short*)depthData, timestamp);
 
 					unsigned short send_bodies = 0;
@@ -219,7 +215,7 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDStreamer * streamer) {
 					}
 
 					// SENDING BODY DATA
-					//res += _SendBodyFrame(&(body_buffers[0]), send_bodies, timestamp); //&body_buffers, send_bodies
+					res += streamer->QueueBodyFrame(&(body_buffers[0]), send_bodies, timestamp); //&body_buffers, send_bodies
 
 					for (int i = 0; i < _countof(bodies); ++i) {
 						SafeRelease(bodies[i]);
@@ -548,8 +544,13 @@ void KinectSDK2DeviceInterface::GetAudio() {
 }
 
 int KinectSDK2DeviceInterface::CloseDevice() {
-	// TODO: close device and unallocate data...
-	return 1;
+	if (sensor != NULL && SUCCEEDED(sensor->Close())) {
+		std::cout << "Closed Kinect successfully" << std::endl;
+		return 1;
+	} else {
+		std::cout << "Failed closing Kinect" << std::endl;
+		return -1;
+	}
 }
 
 int KinectSDK2DeviceInterface::color_width() {
@@ -609,18 +610,15 @@ TJPF KinectSDK2DeviceInterface::color_pixel_format() {
 }
 
 bool KinectSDK2DeviceInterface::supports_audio() {
-	return false;
-	//return true;
+	return true;
 }
 
 bool KinectSDK2DeviceInterface::supports_body() {
-	return false;
-	//return true;
+	return true;
 }
 
 bool KinectSDK2DeviceInterface::supports_bidx() {
-	return false;
-	//return true;
+	return true;
 }
 
 bool KinectSDK2DeviceInterface::supports_hd() {
