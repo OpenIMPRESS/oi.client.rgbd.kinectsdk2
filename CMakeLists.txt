@@ -1,92 +1,61 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1.0)
+project(oi.client.rgbd.kinectsdk2 VERSION 0.1 LANGUAGES CXX)
 
-if(WIN32 AND NOT MINGW)
-  if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-    set(CMAKE_DEBUG_POSTFIX "d")
-  endif()
-endif()
-
-
-IF(NOT DEFINED CMAKE_BUILD_TYPE)
-  # No effect for multi-configuration generators (e.g. for Visual Studio)
-  SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose: RelWithDebInfo Release Debug MinSizeRel None")
-ENDIF()
-
-PROJECT(oi.client.rgbd.kinectsdk2)
-SET(CMAKE_CXX_STANDARD 11)
-
-SET(MY_DIR ${PROJECT_SOURCE_DIR})
-
-#SET(asio_ROOT_DIR "${MY_DIR}/../asio" CACHE STRING "Root folder of asio source.")
-SET(DEPENDS_DIR "${MY_DIR}/../../dependencies" CACHE STRING "OpenIMPRESS dependency directory")
-
-SET(LIBAV_ROOT_DIR "${DEPENDS_DIR}/libav" CACHE STRING "LIBAV directory")
-
-SET(SHARED_OI_DIR "${MY_DIR}/../oi.client.rgbd.libfreenect2" CACHE STRING "OpenIMPRESS Shared")
-
-FIND_PACKAGE(PkgConfig)
-LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules" ) # oi.client.rgbd.libfreenect2 Modules
+LIST(APPEND CMAKE_MODULE_PATH ${OI_NATIVE_MODULE_PATH} ) 
 
 FIND_PACKAGE(ASIO REQUIRED)
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE=YES" )
 FIND_PACKAGE(TurboJPEG REQUIRED)
 FIND_PACKAGE(KinectSDK2 REQUIRED)
-#FIND_PACKAGE(LibAV REQUIRED)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE=YES")
-SET(application_src ${PROJECT_SOURCE_DIR}/src/main.cpp)
+file(GLOB SRC "src/*.cpp")
+file(GLOB HEADERS "include/*.hpp" "src/*.hpp")
+add_executable(${PROJECT_NAME} ${SRC} ${HEADERS})
+source_group("Header Files" FILES ${HEADERS})
+target_link_libraries(${PROJECT_NAME} oi.core oi.network oi.rgbd)
+target_link_libraries(${PROJECT_NAME} ${KinectSDK2_LIBRARIES} ${TurboJPEG_LIBRARIES})
 
+
+ADD_CUSTOM_COMMAND(TARGET ${PROJECT_NAME} POST_BUILD ${KinectSDK2_COMMANDS})
+
+#LINK_DIRECTORIES(${KinectSDK2_LIBRARY_DIRS})
+
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    PRIVATE src)
+
+INCLUDE_DIRECTORIES(${OI_LIB_DIR})
+INCLUDE_DIRECTORIES(${KinectSDK2_INCLUDE_DIRS})    
 INCLUDE_DIRECTORIES(${ASIO_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/headers)      
 INCLUDE_DIRECTORIES(${TurboJPEG_INCLUDE_DIRS})
-INCLUDE_DIRECTORIES(${SHARED_OI_DIR}/headers)
-#INCLUDE_DIRECTORIES(${LIBAV_INCLUDE_DIRS})
 
-if(!KinectSDK2_FOUND)
-  message( FATAL_ERROR "Kinect SDK could not be found." )
-endif()
+IF(ENABLE_OPENGL)
+  FIND_PACKAGE(GLFW3)
+  FIND_PACKAGE(OpenGL)
+  IF(GLFW3_FOUND AND OPENGL_FOUND)
+    INCLUDE_DIRECTORIES( ${GLFW3_INCLUDE_DIRS} ${flextGL_INCLUDE_DIRS} )
+    #LIST(APPEND application_DLLS ${GLFW3_DLL} )
+    #LIST(APPEND application_SRC ${flextGL_SOURCES} )
+    #LIST(APPEND application_LIBRARIES ${GLFW3_LIBRARIES} ${OPENGL_gl_LIBRARY} )
+    target_link_libraries(${PROJECT_NAME} ${GLFW3_LIBRARIES} ${OPENGL_gl_LIBRARY} )
+  ELSE()
+      MESSAGE("ENABLE_OPENGL was set, but could not find GLFW3 and/or OpenGL")
+  ENDIF()
+ENDIF(ENABLE_OPENGL)
 
-INCLUDE_DIRECTORIES(${KinectSDK2_INCLUDE_DIRS})
-LINK_DIRECTORIES(${KinectSDK2_LIBRARY_DIRS})
-LIST(APPEND application_LIBRARIES ${KinectSDK2_LIBRARIES})
-#LIST(APPEND application_LIBRARIES ${LIBAV_AVCODEC_LIBRARIES})
-#LIST(APPEND application_LIBRARIES ${LIBAV_AVUTIL_LIBRARIES})
-#LIST(APPEND application_LIBRARIES ${LIBAV_LIBRARIES})
+# 'make install' to the correct locations (provided by GNUInstallDirs).
+install(TARGETS ${PROJECT_NAME} EXPORT OIClientKinectSDK2Config
+    ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR})  # This is for Windows
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-LIST(APPEND application_LIBRARIES ${TurboJPEG_LIBRARIES})
-LIST(APPEND application_headers
-  ${PROJECT_SOURCE_DIR}/headers/config.h
-  ${PROJECT_SOURCE_DIR}/headers/json.hpp
-  ${PROJECT_SOURCE_DIR}/headers/stb_dxt.h
-  ${SHARED_OI_DIR}/headers/UDPBase.hpp
-  ${SHARED_OI_DIR}/headers/UDPConnector.hpp
-  ${SHARED_OI_DIR}/headers/RGBDStreamer.hpp
-  ${SHARED_OI_DIR}/headers/RecordState.hpp
-  ${PROJECT_SOURCE_DIR}/headers/KinectSDK2Streamer.hpp
-#  ${PROJECT_SOURCE_DIR}/headers/AVEncodeTest.hpp 
-)
-LIST(APPEND application_DLLS)
-LIST(APPEND application_src
-  ${SHARED_OI_DIR}/src/UDPBase.cpp
-  ${SHARED_OI_DIR}/src/UDPConnector.cpp
-  ${SHARED_OI_DIR}/src/RGBDStreamer.cpp
-  ${SHARED_OI_DIR}/src/RecordState.cpp
-  ${PROJECT_SOURCE_DIR}/src/KinectSDK2Streamer.cpp
-#  ${PROJECT_SOURCE_DIR}/src/AVEncodeTest.cpp
-)
-LIST(APPEND application_LIBRARIES
-)
 
-SOURCE_GROUP("Header Files" FILES ${application_headers})
+# This makes the project importable from the install directory
+# Put config file in per-project dir (name MUST match), can also
+# just go into 'cmake'.
+install(EXPORT OIClientKinectSDK2Config DESTINATION share/OIRGBD/cmake)
 
-ADD_EXECUTABLE(oi.client.rgbd.kinectsdk2
-  ${application_src}
-  ${application_headers}
-)
-
-TARGET_LINK_LIBRARIES(oi.client.rgbd.kinectsdk2
-  ${application_LIBRARIES}
-)
-set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT "oi.client.rgbd.kinectsdk2" )
-ADD_CUSTOM_COMMAND(TARGET "oi.client.rgbd.kinectsdk2" POST_BUILD ${KinectSDK2_COMMANDS})
-
-#SET(CMAKE_CXX_FLAGS "-Wno-error=deprecated-declarations")
+# This makes the project importable from the build directory
+export(TARGETS ${PROJECT_NAME} FILE OIClientKinectSDK2Config.cmake)
