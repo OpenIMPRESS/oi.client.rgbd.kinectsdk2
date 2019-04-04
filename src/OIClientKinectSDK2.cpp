@@ -19,7 +19,7 @@ along with OpenIMPRESS. If not, see <https://www.gnu.org/licenses/>.
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <RGBDStreamer.hpp>
+#include <RGBDDevice.hpp>
 #include <KinectSDK2DeviceInterface.hpp>
 
 using namespace oi::core::rgbd;
@@ -32,7 +32,8 @@ asio::io_service io_service;
 int main(int argc, char *argv[]) {
     RGBDStreamerConfig config(argc, argv);
     KinectSDK2DeviceInterface device(config.deviceSerial);
-    RGBDStreamer streamer(device, config, io_service);
+	RGBDStreamIO streamIO(config, io_service);
+	RGBDDevice streamer(device, streamIO);
 	std::cout << "BODY: " << sizeof(BODY_STRUCT) << std::endl;
 	bool running = true;
     while (running) {

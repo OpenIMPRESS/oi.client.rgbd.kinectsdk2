@@ -48,7 +48,7 @@ KinectSDK2DeviceInterface::KinectSDK2DeviceInterface(std::string serial) {
     OpenDevice();
 }
 
-int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDStreamer * streamer) {
+int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDDevice * streamer) {
 	int res = 0;
 
 	std::chrono::milliseconds timestamp = NOW();

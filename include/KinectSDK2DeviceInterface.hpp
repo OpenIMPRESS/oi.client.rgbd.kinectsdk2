@@ -16,7 +16,7 @@ along with OpenIMPRESS. If not, see <https://www.gnu.org/licenses/>.
 */
 #pragma once
 
-#include <RGBDStreamer.hpp>
+#include <RGBDDevice.hpp>
 #include <Kinect.h>
 
 using namespace oi::core;
@@ -31,7 +31,7 @@ public:
     KinectSDK2DeviceInterface(std::string serial);
     int OpenDevice();
     int CloseDevice();
-    int Cycle(oi::core::rgbd::RGBDStreamer * streamer);
+    int Cycle(oi::core::rgbd::RGBDDevice * streamer);
     
     int frame_width();
     int frame_height();
