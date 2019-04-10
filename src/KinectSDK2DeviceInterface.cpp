@@ -608,6 +608,9 @@ std::string KinectSDK2DeviceInterface::device_guid() {
 TJPF KinectSDK2DeviceInterface::color_pixel_format() {
 	return TJPF_RGB;
 }
+bool KinectSDK2DeviceInterface::supports_depth() {
+	return true;
+}
 
 bool KinectSDK2DeviceInterface::supports_audio() {
 	return true;
