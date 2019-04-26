@@ -48,28 +48,15 @@ KinectSDK2DeviceInterface::KinectSDK2DeviceInterface(std::string serial) {
     OpenDevice();
 }
 
+oi::core::rgbd::RGBDDevice * mystreamer = nullptr;
+
 int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDDevice * streamer) {
 	int res = 0;
+	mystreamer = streamer;
 
 	std::chrono::milliseconds timestamp = NOW();
 
 	HRESULT hres = S_OK;
-
-	float * buffer_cpy;
-	audio_mutex.lock();
-	size_t audio_data_len = buffer_loc;
-	if (audio_data_len > 0) {
-		buffer_cpy = new float[audio_data_len];
-		memcpy(buffer_cpy, &(audio_buffer[0]), sizeof(float)*audio_data_len);
-	}
-	buffer_loc = 0;
-	audio_mutex.unlock();
-
-	if (audio_data_len > 0) {
-		res += streamer->QueueAudioFrame(sequence, buffer_cpy, audio_data_len, 16000, 1, timestamp);
-		delete[] buffer_cpy;
-	}
-
 	IMultiSourceFrame* frame = NULL;
 	hres = reader->AcquireLatestFrame(&frame);
 	if (hres == E_PENDING) return 0; // PENDING
@@ -303,124 +290,6 @@ int KinectSDK2DeviceInterface::GetFrame(IMultiSourceFrame * frame, IBodyIndexFra
 	return 1;
 }
 
-int KinectSDK2DeviceInterface::GetAudioSamples(IAudioBeamFrameReader * ar, float * dst, size_t max) {
-	int audio_buffer_loc = 0;
-	IAudioBeamFrameList * beamFrames;
-
-	HRESULT hres = ar->AcquireLatestBeamFrames(&beamFrames);
-	if (!FAILED(hres)) {
-		UINT beamCount = 0;
-		hres = beamFrames->get_BeamCount(&beamCount);
-
-		if (FAILED(hres)) beamCount = 0;
-
-		for (int i = 0; i < beamCount; i++) {
-			UINT subFrameCount = 0;
-			IAudioBeamFrame * beamFrame;
-			hres = beamFrames->OpenAudioBeamFrame(i, &beamFrame);
-
-			if (FAILED(hres) && true) { // debug level
-				std::cerr << "\nERROR: Can't open AudioBeamFrame" << std::endl;
-			}
-			else {
-				hres = beamFrame->get_SubFrameCount(&subFrameCount);
-				if (FAILED(hres)) {
-					if (true) { // debug level
-						std::cerr << "\nERROR: Can't get SubFrameCount" << std::endl;
-					}
-					subFrameCount = 0;
-				}
-			}
-
-			/*
-			TIMESPAN tsFrame;
-			beamFrame->get_RelativeTimeStart(&tsFrame);
-			TIMESPAN missingTime = 0;
-			if (tsFrame >= _expected_next_audio_frame_start) {
-				missingTime = tsFrame-_expected_next_audio_frame_start;
-				if (missingTime >= 10000) {
-					std::cerr << "\nPOS DELTA=" << missingTime/10000 << "ms" << std::endl;
-				}
-			} else {
-				TIMESPAN timeAhead = _expected_next_audio_frame_start - tsFrame;
-				if (timeAhead >= 10000)
-				std::cerr << "\nNEG DELTA=" << timeAhead/10000 << "ms" << std::endl;
-			}
-
-			if (missingTime > 2000*10000) {
-				std::cerr <<  "RESETTING, DELTA=" << missingTime/10000 << "ms" << std::endl;
-				missingTime = 0;
-			}*/
-
-			for (int j = 0; j < subFrameCount; j++) {
-				IAudioBeamSubFrame * beamSubFrame;
-				TIMESPAN tsSubFrame;
-				hres = beamFrame->GetSubFrame(j, &beamSubFrame);
-				beamSubFrame->get_RelativeTime(&tsSubFrame);
-
-				if (FAILED(hres)) {
-					if (true) { // debug level
-						std::cerr << "\nERROR: Failed to GetSubFrame" << std::endl;
-					}
-					SafeRelease(beamSubFrame); break;
-				}
-
-				float beamAngle, beamConfidence;
-				hres = beamSubFrame->get_BeamAngle(&beamAngle);
-				hres = beamSubFrame->get_BeamAngleConfidence(&beamConfidence);
-				//std::cout << beamAngle * 180 / 3.1415 << std::endl;
-				float * audioBuffer = NULL;
-				UINT cbRead = 0;
-				hres = beamSubFrame->AccessUnderlyingBuffer(&cbRead, (BYTE **)&audioBuffer);
-				//beamSubFrame->CopyFrameDataToArray()
-				//_expected_next_audio_frame_start = tsSubFrame + ((cbRead / sizeof(float)) / 16) * 10000;
-
-				if (FAILED(hres)) {
-					if (true) { // debug level
-						std::cerr << "\nERROR: Failed to AccessUnderlyingBuffer" << std::endl;
-					}
-					SafeRelease(beamSubFrame); break;
-				}
-
-				memcpy(&(dst[audio_buffer_loc]), audioBuffer, cbRead);
-				audio_buffer_loc += (size_t)(cbRead / sizeof(float));
-				SafeRelease(beamSubFrame);
-			}
-
-			SafeRelease(beamFrame);
-		}
-	}
-
-	SafeRelease(beamFrames);
-	return audio_buffer_loc;
-
-
-	/* ALTERNATIVE METHOD USING AUDIO STREAM
-
-	// HEADER
-	IAudioBeam *     audioBeam;
-	IStream * audioStream;
-
-	// SETUP
-	hres = audioSource->get_AudioBeams(&audioBeamList);
-	hres = audioBeamList->OpenAudioBeam(0, &audioBeam);
-	hres = audioBeam->OpenInputStream(&audioStream);
-	SafeRelease(audioBeamList);
-
-	// HERE
-	DWORD cbRead = 0;
-	hres = audioStream->Read((void *)audio_buffer, sizeof(audio_buffer), &cbRead);
-	audio_buffer_loc = cbRead / sizeof(float);
-
-	if (FAILED(hres) && hres != E_PENDING) {
-	std::cerr << "Failed reading audio..." << std::endl;
-	return 0;
-	} else return audio_buffer_loc;
-
-	*/
-
-}
-
 int KinectSDK2DeviceInterface::OpenDevice() {
 	HRESULT hres = S_OK;
 	std::cout << "Opening devive..." << std::endl;
@@ -445,36 +314,38 @@ int KinectSDK2DeviceInterface::OpenDevice() {
 			std::cout << "Failed to OpenMultiSourceFrameReader " << std::endl; return false;
 		}
 
-		IAudioSource * audioSource;
-		hres = sensor->get_AudioSource(&audioSource);
-		if (FAILED(hres)) {
-			std::cout << "Failed to get_AudioSource " << std::endl; return false;
+		IAudioSource *			pAudioSource;
+		IAudioBeamList* pAudioBeamList;
+		if (SUCCEEDED(hres)) {
+			hres = sensor->get_AudioSource(&pAudioSource);
 		}
 
-		hres = audioSource->OpenReader(&audioReader);
-		if (FAILED(hres)) {
-			std::cout << "Failed to OpenReader " << std::endl; return false;
+		if (SUCCEEDED(hres)) {
+			hres = pAudioSource->get_AudioBeams(&pAudioBeamList);
 		}
 
-		/*
-		IAudioBeamList* pAudioBeamList = NULL;
-		IAudioBeam* pAudioBeam = NULL;
-		hres = audioSource->get_AudioBeams(&pAudioBeamList);
-		hres = pAudioBeamList->OpenAudioBeam(0, &pAudioBeam);
-		hres = pAudioBeam->put_AudioBeamMode(AudioBeamMode_Manual);
-		hres = pAudioBeam->put_BeamAngle(180);
+		if (SUCCEEDED(hres)) {
+			hres = pAudioBeamList->OpenAudioBeam(0, &m_pAudioBeam);
+		}
 
-		SafeRelease(pAudioBeam);
+		if (SUCCEEDED(hres)) {
+			/*
+			hres = m_pAudioBeam->put_AudioBeamMode(AudioBeamMode_Manual);
+			hres = m_pAudioBeam->put_BeamAngle(180);
+			*/
+			hres = m_pAudioBeam->OpenInputStream(&m_pAudioStream);
+		}
+
 		SafeRelease(pAudioBeamList);
-		*/
-		SafeRelease(audioSource);
+		SafeRelease(pAudioSource);
+
 	}
 	else {
 		return false;
 	}
 
 	//wait a moment; GetDepthCameraIntrinsics can be unreliable at startup
-	std::this_thread::sleep_for(std::chrono::microseconds(5000000));
+	std::this_thread::sleep_for(std::chrono::microseconds(2500000));
 
 
 	if (serial == "") {
@@ -523,23 +394,20 @@ int KinectSDK2DeviceInterface::OpenDevice() {
 	return true;
 }
 
+
 void KinectSDK2DeviceInterface::GetAudio() {
+	HRESULT hres = S_OK;
 	_audio_running = true;
-
 	while (_audio_running) {
-		audio_mutex.lock();
-		if (buffer_loc >= audio_buffer_size) {
-			std::cerr << "AUDIO BUFFER TOO FULL, FLUSHED!" << std::endl;
-			buffer_loc = 0;
+		static float audioBuffer[cAudioBufferLength];
+		DWORD cbRead = 0;
+		hres = m_pAudioStream->Read((void *)audioBuffer, sizeof(audioBuffer), &cbRead);
+		if (FAILED(hres) && hres != E_PENDING) {
+		} else if (cbRead > 0 && mystreamer != nullptr) {
+			std::chrono::milliseconds timestamp = NOW();
+			mystreamer->QueueAudioFrame(sequence, &(audioBuffer[0]), (size_t)(cbRead / sizeof(float)), 16000, 1, timestamp);
 		}
-		else {
-			int data = GetAudioSamples(audioReader, &(audio_buffer[buffer_loc]), audio_buffer_size - buffer_loc);
-
-			if (data > 0) {
-				buffer_loc += data;
-			}
-		}
-		audio_mutex.unlock();
+		std::this_thread::sleep_for(std::chrono::microseconds(cAudioReadTimerInterval));
 	}
 }
 

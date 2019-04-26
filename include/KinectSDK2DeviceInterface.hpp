@@ -58,18 +58,11 @@ public:
 	int color_width();
 	int color_height();
 
-	// 0 for pending, 1 for good, -X for error
-	int GetFrame(IMultiSourceFrame *, IColorFrame **);
-	int GetFrame(IMultiSourceFrame *, IDepthFrame **);
-	int GetFrame(IMultiSourceFrame *, IBodyFrame **);
-	int GetFrame(IMultiSourceFrame *, IBodyIndexFrame **);
-	int GetAudioSamples(IAudioBeamFrameReader *, float*, size_t);
-
 	IKinectSensor* sensor;           // Kinect sensor
 	IMultiSourceFrameReader* reader; // Kinect data source
 	ICoordinateMapper* mapper;       // Converts between depth, color, and 3d coordinates
 
-	IAudioBeamFrameReader * audioReader;
+	//IAudioBeamFrameReader * audioReader;
 
 	CameraIntrinsics c_i;
 
@@ -80,15 +73,29 @@ public:
     
 	BODY_STRUCT body_buffers[BODY_COUNT];
 private:
-    
-    std::string serial;
-	std::thread * audio_thread;
+
+	// 0 for pending, 1 for good, -X for error
+	int GetFrame(IMultiSourceFrame *, IColorFrame **);
+	int GetFrame(IMultiSourceFrame *, IDepthFrame **);
+	int GetFrame(IMultiSourceFrame *, IBodyFrame **);
+	int GetFrame(IMultiSourceFrame *, IBodyIndexFrame **);
 	void GetAudio();
+
+	WAITABLE_HANDLE audioFrameHandle;
+    std::string serial;
+	HANDLE audio_thread;
 	bool _audio_running;
 	static const size_t audio_buffer_size = 64000;
-	float audio_buffer[audio_buffer_size];
+	//float audio_buffer[audio_buffer_size];
 	std::mutex audio_mutex;
 	int buffer_loc = 0;
+
+	static const int        cAudioSamplesPerSecond = 16000;
+    static const int        cAudioReadTimerInterval = 50;
+	static const int        cAudioBufferLength = 2 * cAudioReadTimerInterval * cAudioSamplesPerSecond / 1000;
+
+	IAudioBeam*             m_pAudioBeam;
+	IStream*                m_pAudioStream;
 
 };
 
