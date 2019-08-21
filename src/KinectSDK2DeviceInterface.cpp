@@ -115,6 +115,7 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDDevice * streamer) {
 	}
 
 	streamer->QueueBodyIndexFrame(depthMult, frame_width(), frame_height(), TJPF_GRAY, timestamp);
+
 	delete[] depthMult;
 
 
@@ -126,6 +127,8 @@ int KinectSDK2DeviceInterface::Cycle(oi::core::rgbd::RGBDDevice * streamer) {
 		if (SUCCEEDED(hres)) {
 			hres = colorFrame->CopyConvertedFrameDataToArray(color_width() * color_height() * 4, rgbimage, ColorImageFormat_Rgba);
 			if (SUCCEEDED(hres)) {
+
+				res += streamer->QueueHDFrame(rgbimage, color_width(), color_height(), TJPF_RGBA, timestamp);
 
 				// PREPARING BODY DATA
 				//_SendHDFrame(rgbimage, color_width(), color_height(), TJPF_RGBA, timestamp);
@@ -329,10 +332,8 @@ int KinectSDK2DeviceInterface::OpenDevice() {
 		}
 
 		if (SUCCEEDED(hres)) {
-			/*
 			hres = m_pAudioBeam->put_AudioBeamMode(AudioBeamMode_Manual);
-			hres = m_pAudioBeam->put_BeamAngle(180);
-			*/
+			hres = m_pAudioBeam->put_BeamAngle(0);
 			hres = m_pAudioBeam->OpenInputStream(&m_pAudioStream);
 		}
 

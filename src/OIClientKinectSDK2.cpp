@@ -30,11 +30,13 @@ asio::io_service io_service;
 
 
 int main(int argc, char *argv[]) {
+	std::string path = oi_cwd();
+	std::string dataPath = path + oi::core::oi_path_sep + "data";
     RGBDStreamerConfig config(argc, argv);
     KinectSDK2DeviceInterface device(config.deviceSerial);
-	RGBDStreamIO streamIO(config, io_service);
+	RGBDStreamIO streamIO(config, io_service, dataPath);
 	RGBDDevice streamer(device, streamIO);
-	std::cout << "BODY: " << sizeof(BODY_STRUCT) << std::endl;
+
 	bool running = true;
     while (running) {
         device.Cycle(&streamer);
