@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.20)
 project(oi.client.rgbd.kinectsdk2 VERSION 0.1 LANGUAGES CXX)
 
 LIST(APPEND CMAKE_MODULE_PATH ${OI_NATIVE_MODULE_PATH} ) 
